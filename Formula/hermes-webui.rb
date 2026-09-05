@@ -12,13 +12,17 @@ class HermesWebui < Formula
   def install
     system "pip3", "install", *std_pip_args, "."
 
+    # bootstrap.py resolves REPO_ROOT relative to its own file (site-packages)
+    # and expects requirements.txt there for its local .venv fallback.
+    cp "requirements.txt", prefix/Language::Python.site_packages("python@3.12")/"requirements.txt"
+
     (var/"lib/hermes-webui").mkpath
     (var/"log/hermes-webui").mkpath
     (var/"hermes-webui").mkpath
   end
 
   service do
-    run [opt_bin/"hermes-webui", "serve", "--port", "8787"]
+    run [opt_bin/"hermes-webui", "8787", "--foreground"]
     keep_alive true
     environment_variables PATH: std_service_path_env
     working_dir var/"hermes-webui"
