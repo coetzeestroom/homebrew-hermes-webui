@@ -7,6 +7,7 @@ class HermesWebui < Formula
   head "https://github.com/nesquena/hermes-webui.git", branch: "master"
 
   depends_on "python@3.12"
+  depends_on "python-setuptools"
 
   def install
     # The package uses setuptools with a console script entry point
