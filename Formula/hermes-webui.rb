@@ -12,8 +12,6 @@ class HermesWebui < Formula
   def install
     system "pip3", "install", *std_pip_args, "."
 
-    # bootstrap.py resolves REPO_ROOT relative to its own file (site-packages)
-    # and expects requirements.txt there for its local .venv fallback.
     cp "requirements.txt", prefix/Language::Python.site_packages("python@3.12")/"requirements.txt"
 
     (var/"lib/hermes-webui").mkpath
@@ -30,72 +28,6 @@ class HermesWebui < Formula
     error_log_path var/"log/hermes-webui.error.log"
   end
 
-  test do
-    assert_match "hermes-webui", shell_output("#{bin}/hermes-webui --help 2>&1")
-  end
-
-  def post_install_steps
-    service_name = "homebrew.#{name}"
-
-    if OS.linux?
-      service_file = Pathname.new(Dir.home)/".config"/"systemd"/"user"/"#{service_name}.service"
-      expected_working_dir = var/"hermes-webui"
-      expected_path = std_service_path_env
-
-      if service_file.exist?
-        content = service_file.read
-        issues = []
-
-        unless content.include?("WorkingDirectory=#{expected_working_dir}")
-          issues << "WorkingDirectory mismatch (expected: #{expected_working_dir})"
-        end
-
-        unless content.include?("Environment=PATH=#{expected_path}")
-          issues << "Environment=PATH mismatch (expected: #{expected_path})"
-        end
-
-        if issues.empty?
-          ohai "Service file #{service_file} validates successfully"
-        else
-          opoo "Service file #{service_file} has issues:\n  #{issues.join("\n  ")}"
-        end
-      else
-        ohai "Service file #{service_file} not found — it will be generated on first `brew services start #{name}`"
-      end
-    elsif OS.mac?
-      plist_file = Pathname.new(Dir.home)/"Library"/"LaunchAgents"/"#{service_name}.plist"
-      expected_working_dir = var/"hermes-webui"
-      expected_path = std_service_path_env
-
-      if plist_file.exist?
-        content = plist_file.read
-        issues = []
-
-        if !content.include?("<key>EnvironmentVariables</key>")
-          issues << "EnvironmentVariables/PATH missing or incorrect (expected: #{expected_path})"
-        elsif !content.include?("<key>PATH</key>")
-          issues << "EnvironmentVariables/PATH missing or incorrect (expected: #{expected_path})"
-        elsif !content.include?("<string>#{expected_path}</string>")
-          issues << "EnvironmentVariables/PATH missing or incorrect (expected: #{expected_path})"
-        end
-
-        if !content.include?("<key>WorkingDirectory</key>")
-          issues << "WorkingDirectory missing or incorrect (expected: #{expected_working_dir})"
-        elsif !content.include?("<string>#{expected_working_dir}</string>")
-          issues << "WorkingDirectory missing or incorrect (expected: #{expected_working_dir})"
-        end
-
-        if issues.empty?
-          ohai "LaunchAgent plist #{plist_file} validates successfully"
-        else
-          opoo "LaunchAgent plist #{plist_file} has issues:\n  #{issues.join("\n  ")}"
-        end
-      else
-        ohai "LaunchAgent plist #{plist_file} not found — it will be generated on first `brew services start #{name}`"
-      end
-    end
-  end
-
   def caveats
     <<~EOS
       Start the service (user-level deployment):
@@ -109,5 +41,63 @@ class HermesWebui < Formula
       ~/Downloads, ~/Documents), grant "Full Disk Access" to your terminal application
       and the node/python binaries in System Settings > Privacy & Security.
     EOS
+  end
+
+  test do
+    assert_match "hermes-webui", shell_output("#{bin}/hermes-webui --help 2>&1")
+  end
+
+  def post_install_steps
+    service_name = "homebrew.#{name}"
+
+    if OS.linux?
+      service_file = Pathname.new(Dir.home)/".config"/"systemd"/"user"/"#{service_name}.service"
+      expected_working_dir = var/"hermes-webui"
+
+      if service_file.exist?
+        content = service_file.read
+        issues = []
+
+        if content.exclude?("WorkingDirectory=#{expected_working_dir}")
+          issues << "WorkingDirectory mismatch (expected: #{expected_working_dir})"
+        end
+
+        if issues.empty?
+          ohai "Service file #{service_file} validates successfully"
+        else
+          opoo "Service file #{service_file} has issues:\n  #{issues.join("\n  ")}"
+        end
+      else
+        ohai "Service file #{service_file} not found — it will be generated on first `brew services start #{name}`"
+      end
+    elsif OS.mac?
+      plist_file = Pathname.new(Dir.home)/"Library"/"LaunchAgents"/"#{service_name}.plist"
+      expected_working_dir = var/"hermes-webui"
+
+      if plist_file.exist?
+        content = plist_file.read
+        issues = []
+
+        if content.exclude?("<key>EnvironmentVariables</key>")
+          issues << "EnvironmentVariables/PATH missing"
+        elsif content.exclude?("<key>PATH</key>")
+          issues << "EnvironmentVariables/PATH missing"
+        end
+
+        if content.exclude?("<key>WorkingDirectory</key>")
+          issues << "WorkingDirectory missing"
+        elsif content.exclude?("<string>#{expected_working_dir}</string>")
+          issues << "WorkingDirectory missing or incorrect (expected: #{expected_working_dir})"
+        end
+
+        if issues.empty?
+          ohai "LaunchAgent plist #{plist_file} validates successfully"
+        else
+          opoo "LaunchAgent plist #{plist_file} has issues:\n  #{issues.join("\n  ")}"
+        end
+      else
+        ohai "LaunchAgent plist #{plist_file} not found — it will be generated on first `brew services start #{name}`"
+      end
+    end
   end
 end
