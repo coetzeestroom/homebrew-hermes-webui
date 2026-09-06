@@ -35,7 +35,9 @@ class HermesWebui < Formula
   service do
     run [opt_bin/"hermes-webui", "8787", "--foreground", "--skip-agent-install"]
     keep_alive true
-    environment_variables PATH: std_service_path_env
+    environment_variables PATH: std_service_path_env,
+      HERMES_WEBUI_PYTHON: "#{Formula["python@3.12"].opt_bin}/python3.12",
+      HERMES_WEBUI_DISABLE_LOCAL_VENV: "1"
     working_dir var/"hermes-webui"
     log_path var/"log/hermes-webui.log"
     error_log_path var/"log/hermes-webui.error.log"
@@ -43,6 +45,10 @@ class HermesWebui < Formula
 
   def caveats
     <<~EOS
+      Hermes Agent is not installed automatically. Install it separately before
+      starting the service, or the server will fail to start. See:
+        https://github.com/NousResearch/hermes-agent
+
       Start the service (user-level deployment):
         brew services start #{name}
 
