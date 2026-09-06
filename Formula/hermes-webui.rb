@@ -12,11 +12,17 @@ class HermesWebui < Formula
   def install
     system "pip3", "install", *std_pip_args, "."
 
-    # pyyaml is not packaged in Homebrew core; cryptography's formula may target
-    # a different Python than python@3.12, so install both (plus cffi, which
-    # cryptography requires at runtime) via pip into the same site-packages
-    # that the main package lands in.
-    system "pip3", "install", *std_pip_args, "pyyaml>=6.0", "cryptography>=42.0", "cffi"
+    # pyyaml is not packaged in Homebrew core; cryptography's formula targets
+    # python@3.13/3.14, not python@3.12. Install both (plus cffi, which
+    # cryptography requires at runtime) via pip wheels. std_pip_args would force
+    # --no-binary=:all: (source builds), so cryptography would need maturin —
+    # avoid that by passing explicit args that allow wheels.
+    system "pip3", "install",
+           "--prefix=#{prefix}",
+           "--ignore-installed",
+           "--no-compile",
+           "--no-deps",
+           "pyyaml>=6.0", "cryptography>=42.0", "cffi"
 
     (var/"lib/hermes-webui").mkpath
     (var/"log/hermes-webui").mkpath
