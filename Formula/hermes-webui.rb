@@ -6,13 +6,17 @@ class HermesWebui < Formula
   license "MIT"
   head "https://github.com/nesquena/hermes-webui.git", branch: "master"
 
-  depends_on "cryptography"
-  depends_on "pyyaml"
   depends_on "python-setuptools"
   depends_on "python@3.12"
 
   def install
     system "pip3", "install", *std_pip_args, "."
+
+    # pyyaml is not packaged in Homebrew core; cryptography's formula may target
+    # a different Python than python@3.12, so install both (plus cffi, which
+    # cryptography requires at runtime) via pip into the same site-packages
+    # that the main package lands in.
+    system "pip3", "install", *std_pip_args, "pyyaml>=6.0", "cryptography>=42.0", "cffi"
 
     (var/"lib/hermes-webui").mkpath
     (var/"log/hermes-webui").mkpath
