@@ -16,9 +16,12 @@ class HermesWebui < Formula
     # python@3.13/3.14, not python@3.12. Install both (plus cffi, which
     # cryptography requires at runtime) via pip wheels. std_pip_args would force
     # --no-binary=:all: (source builds), so cryptography would need maturin —
-    # avoid that by passing explicit args that allow wheels.
+    # avoid that by passing explicit args that allow wheels. Use --target so
+    # pip puts its bin scripts (e.g. cffi-gen-src) inside site-packages instead
+    # of the keg's bin/, which would clash with the cffi formula at brew link.
+    site_packages = prefix/Language::Python.site_packages("python3.12")
     system "pip3", "install",
-           "--prefix=#{prefix}",
+           "--target=#{site_packages}",
            "--ignore-installed",
            "--no-compile",
            "--no-deps",
@@ -34,7 +37,7 @@ class HermesWebui < Formula
     # Pathname#write refuses to overwrite an existing file.
     (bin/"hermes-webui").unlink if (bin/"hermes-webui").exist?
     (bin/"hermes-webui").write <<~PYTHON
-      #!#{opt_bin}/python3
+      #!#{Formula["python@3.12"].opt_bin}/python3.12
       import os
       import sys
 
