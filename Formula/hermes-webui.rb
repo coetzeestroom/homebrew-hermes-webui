@@ -37,7 +37,7 @@ class HermesWebui < Formula
     # Pathname#write refuses to overwrite an existing file.
     (bin/"hermes-webui").unlink if (bin/"hermes-webui").exist?
     (bin/"hermes-webui").write <<~PYTHON
-      #!#{Formula["python@3.12"].opt_bin}/python3.12
+      #!#{formula_opt_bin("python@3.12")}/python3.12
       import os
       import sys
 
