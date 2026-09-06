@@ -6,8 +6,8 @@ class HermesWebui < Formula
   license "MIT"
   head "https://github.com/nesquena/hermes-webui.git", branch: "master"
 
-  depends_on "python-cryptography"
-  depends_on "python-pyyaml"
+  depends_on "cryptography"
+  depends_on "pyyaml"
   depends_on "python-setuptools"
   depends_on "python@3.12"
 
