@@ -29,7 +29,10 @@ class HermesWebui < Formula
     (var/"hermes-webui").mkpath
 
     # Create a wrapper that bypasses bootstrap.py (which requires Hermes Agent)
-    # and runs server.py directly with the Homebrew Python.
+    # and runs server.py directly with the Homebrew Python. pip's console
+    # script already exists at bin/hermes-webui, so unlink it first --
+    # Pathname#write refuses to overwrite an existing file.
+    bin/"hermes-webui".unlink if (bin/"hermes-webui").exist?
     (bin/"hermes-webui").write <<~PYTHON
       #!#{opt_bin}/python3
       import os
