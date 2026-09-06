@@ -2,14 +2,14 @@
 
 ## How do I install these formulae?
 
-`brew install coetzeer/hermes-webui/<formula>`
+`brew install coetzeestroom/hermes-webui/<formula>`
 
-Or `brew tap coetzeer/hermes-webui` and then `brew install <formula>`.
+Or `brew tap coetzeestroom/hermes-webui` and then `brew install <formula>`.
 
 Or, in a `brew bundle` `Brewfile`:
 
 ```ruby
-tap "coetzeer/hermes-webui"
+tap "coetzeestroom/hermes-webui"
 brew "<formula>"
 ```
 
