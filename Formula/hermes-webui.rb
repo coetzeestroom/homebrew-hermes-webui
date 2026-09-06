@@ -71,7 +71,7 @@ class HermesWebui < Formula
         content = plist_file.read
         issues = []
 
-        unless content.include?("<key>EnvironmentVariables</key>")
+        if !content.include?("<key>EnvironmentVariables</key>")
           issues << "EnvironmentVariables/PATH missing or incorrect (expected: #{expected_path})"
         elsif !content.include?("<key>PATH</key>")
           issues << "EnvironmentVariables/PATH missing or incorrect (expected: #{expected_path})"
@@ -79,7 +79,7 @@ class HermesWebui < Formula
           issues << "EnvironmentVariables/PATH missing or incorrect (expected: #{expected_path})"
         end
 
-        unless content.include?("<key>WorkingDirectory</key>")
+        if !content.include?("<key>WorkingDirectory</key>")
           issues << "WorkingDirectory missing or incorrect (expected: #{expected_working_dir})"
         elsif !content.include?("<string>#{expected_working_dir}</string>")
           issues << "WorkingDirectory missing or incorrect (expected: #{expected_working_dir})"
