@@ -30,75 +30,10 @@ class HermesWebui < Formula
     (var/"lib/hermes-webui").mkpath
     (var/"log/hermes-webui").mkpath
     (var/"hermes-webui").mkpath
-
-    # Create a wrapper that bypasses bootstrap.py (which requires Hermes Agent)
-    # and runs server.py directly with the Homebrew Python. pip's console
-    # script already exists at bin/hermes-webui, so unlink it first --
-    # Pathname#write refuses to overwrite an existing file.
-    (bin/"hermes-webui").unlink if (bin/"hermes-webui").exist?
-    (bin/"hermes-webui").write <<~PYTHON
-      #!#{formula_opt_bin("python@3.12")}/python3.12
-      import os
-      import sys
-
-      # Default port
-      port = 8787
-
-      # Parse simple args: port as positional, --foreground, --no-browser
-      args = sys.argv[1:]
-      foreground = "--foreground" in args
-      no_browser = "--no-browser" in args
-      args = [a for a in args if a not in ("--foreground", "--no-browser")]
-
-      if args:
-          try:
-              port = int(args[0])
-          except ValueError:
-              print(f"Invalid port: {args[0]}", file=sys.stderr)
-              sys.exit(1)
-
-      # Set environment for server.py
-      os.environ["HERMES_WEBUI_HOST"] = "127.0.0.1"
-      os.environ["HERMES_WEBUI_PORT"] = str(port)
-
-      state_dir = os.environ.get("HERMES_WEBUI_STATE_DIR") or os.path.expanduser("~/.hermes/webui")
-      os.makedirs(state_dir, exist_ok=True)
-      os.environ.setdefault("HERMES_WEBUI_STATE_DIR", state_dir)
-
-      # Locate server.py in the installed package
-      pkg_dir = os.path.dirname(os.path.dirname(__file__))
-      site_packages = os.path.join(pkg_dir, "lib", "python3.12", "site-packages")
-      server_py = os.path.join(site_packages, "server.py")
-
-      if not os.path.exists(server_py):
-          # Fallback: look in Cellar
-          import glob
-          candidates = glob.glob("/home/linuxbrew/.linuxbrew/Cellar/hermes-webui/*/lib/python3.12/site-packages/server.py")
-          if candidates:
-              server_py = candidates[0]
-          else:
-              print("ERROR: Cannot find server.py", file=sys.stderr)
-              sys.exit(1)
-
-      if foreground:
-          os.execv(sys.executable, [sys.executable, server_py])
-      else:
-          import subprocess
-          subprocess.Popen(
-              [sys.executable, server_py],
-              start_new_session=True,
-              stdout=subprocess.DEVNULL,
-              stderr=subprocess.DEVNULL,
-          )
-          print(f"Hermes WebUI starting on http://127.0.0.1:{port}")
-    PYTHON
-
-    # Make wrapper executable
-    chmod 0755, bin/"hermes-webui"
   end
 
   service do
-    run [opt_bin/"hermes-webui", "8787", "--foreground"]
+    run [opt_bin/"hermes-webui", "8787", "--foreground", "--skip-agent-install"]
     keep_alive true
     environment_variables PATH: std_service_path_env
     working_dir var/"hermes-webui"
