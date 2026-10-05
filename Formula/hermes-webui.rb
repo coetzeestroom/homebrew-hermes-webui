@@ -1,8 +1,8 @@
 class HermesWebui < Formula
   desc "Lightweight, dark-themed web interface for Hermes Agent"
   homepage "https://github.com/nesquena/hermes-webui"
-  url "https://github.com/nesquena/hermes-webui/archive/refs/tags/exp-v0.52.409.tar.gz"
-  sha256 "8fcdea64e66e78384a9dec5287c108922a50d7374dbae49a74a0a4de78018a76"
+  url "https://github.com/nesquena/hermes-webui/archive/refs/tags/exp-v0.52.415.tar.gz"
+  sha256 "5523aff5425da99f3131fb59b66603a342e38bba7a46e918b1f9eac9d682e739"
   license "MIT"
   head "https://github.com/nesquena/hermes-webui.git", branch: "master"
 
