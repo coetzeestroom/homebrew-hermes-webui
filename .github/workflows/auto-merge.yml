@@ -1,0 +1,78 @@
+name: Auto Merge PRs
+
+on:
+  schedule:
+    - cron: "*/10 * * * *"
+  workflow_dispatch:
+
+jobs:
+  automerge:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - name: Merge pull requests with passing checks
+        env:
+          GH_TOKEN: ${{ secrets.BREW_PAT }}
+        run: |
+          set -euo pipefail
+
+          prs="$(gh pr list --repo "$GITHUB_REPOSITORY" --state open --json number,title \
+            --jq '.[] | [.number, .title] | @tsv')" || {
+            echo "::error::Unable to list open pull requests; refusing to merge."
+            exit 1
+          }
+
+          blocked=0
+          ready_prs=()
+          while IFS=$'\t' read -r number title; do
+            [[ -z "${number}" ]] && continue
+
+            pr="$(gh pr view "${number}" --repo "$GITHUB_REPOSITORY" \
+              --json headRefOid,statusCheckRollup)" || {
+              echo "::error::Unable to inspect PR #${number}; refusing to merge any PR."
+              exit 1
+            }
+
+            head_sha="$(jq -er '.headRefOid' <<<"${pr}")" || {
+              echo "::error::Unable to read the head commit for PR #${number}; refusing to merge any PR."
+              exit 1
+            }
+
+            # Accept only terminal, successful checks for this exact PR head.
+            if ! jq -e '
+              .statusCheckRollup as $checks
+              | ($checks | type == "array")
+              and ($checks | length > 0)
+              and ($checks | all(.[];
+                if .__typename == "CheckRun" then
+                  .status == "COMPLETED"
+                  and (.conclusion == "SUCCESS" or .conclusion == "NEUTRAL" or .conclusion == "SKIPPED")
+                elif .__typename == "StatusContext" then
+                  .state == "SUCCESS"
+                else
+                  false
+                end
+              ))
+            ' <<<"${pr}" >/dev/null; then
+              echo "PR #${number} (${title}) has missing, pending, cancelled, or failing checks."
+              blocked=1
+              continue
+            fi
+
+            ready_prs+=("${number}"$'\t'"${head_sha}")
+          done <<<"${prs}"
+
+          if [[ "${blocked}" == "1" ]]; then
+            echo "Automerge skipped: at least one open PR does not have fully passing checks."
+            exit 0
+          fi
+
+          for ready_pr in "${ready_prs[@]}"; do
+            IFS=$'\t' read -r number head_sha <<<"${ready_pr}"
+            if ! gh pr merge "${number}" --repo "$GITHUB_REPOSITORY" --squash \
+              --match-head-commit "${head_sha}"; then
+              echo "::warning::PR #${number} was not merged; its head or merge state changed."
+            fi
+          done
